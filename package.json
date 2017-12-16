@@ -6,17 +6,19 @@
   "scripts": {
     "start": "electron ."
   },
-  "repository": "https://github.com/electron/electron-quick-start",
+  "repository": "https://github.com/XoLMeS/Pandora",
   "keywords": [
     "Electron",
-    "quick",
-    "start",
-    "tutorial",
-    "demo"
+    "Node.js"
   ],
-  "author": "GitHub",
-  "license": "CC0-1.0",
+  "author": "XoLMeS",
   "devDependencies": {
     "electron": "~1.7.8"
+  },
+  "dependencies": {
+    "jquery": "^3.2.1",
+	"jsonfile": "^3.0.1",
+    "socket.io": "^2.0.3",
+    "underscore": "^1.8.3"
   }
 }

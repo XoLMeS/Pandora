@@ -1,26 +1,31 @@
-const electron = require('electron')
+const electron 		 = require('electron')
+const app 			 = electron.app
+const BrowserWindow  = electron.BrowserWindow
 
-const app = electron.app
-
-const BrowserWindow = electron.BrowserWindow
-
-const path = require('path')
-const url = require('url')
+const path 			 = require('path')
+const url 			 = require('url')
 
 let mainWindow
 
 function createWindow () {
 
-  mainWindow = new BrowserWindow({width: 800, height: 600})
-
+  mainWindow = new BrowserWindow({width: 1000, height: 600})
+  mainWindow.setMinimumSize(800, 600);
+  
+  mainWindow.setMenu(null);			// Removes tools panel
+  
   // and load the index.html of the app.
   mainWindow.loadURL(url.format({
-    pathname: path.join('public/html/', 'index.html'),
+    pathname: path.join('public/html/', 'login.html'),
     protocol: 'file:',
     slashes: true
   }))
 
+ mainWindow.maximize();
 
+  // Open the DevTools.
+  mainWindow.webContents.openDevTools()
+  
   // Emitted when the window is closed.
   mainWindow.on('closed', function () {
     // Dereference the window object, usually you would store windows
