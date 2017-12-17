@@ -1,0 +1,35 @@
+		
+	.modal-content {
+		background-color: #4b4f56;
+		border: 1px solid black;
+		top: 200px;
+	}
+	
+	#img-place {
+		height: 64px;
+		width: 64px;
+	}
+	
+	.error {
+		color: red;
+	}
+	
+	.form-control {
+		margin-top: 15px;
+		bottom: 15px;
+		width: 465px;
+		border-radius: 0px;
+		background: rgb(98, 96, 96);
+		color: white;
+		font-family: 'Nunito', sans-serif;
+	}
+	
+	#modal-close {
+		position: absolute;
+		left: 15px;
+	}
+	
+	#modal-create {
+		position: absolute;
+		right: 15px;
+	}

@@ -3,6 +3,7 @@ $(document).ready(function() {
 	var _ 					= require('underscore');
 	var scanner 			= require('../../XEmoji/scanner.js');
 	var audio 				= new Audio('../sounds/sound_01.mp3');
+	var fs 				 	= require('fs');
 	
     var socket 				= io.connect('http://localhost:3000');
     var username 			= localStorage.getItem("nickname");
@@ -76,7 +77,7 @@ $(document).ready(function() {
 		
 		// Add servers
 		for(let a = 0; a < data.length; a++){
-			$('#left-list').append($('<li>').html("<div id='"+data[a].id+"' class='server'><span class='server-title'><img class='server-icon' src ='"+hexToBase64(data[a].img)+"'>"+data[a].title+"</span></div>"));
+			$('#left-list').append($('<li>').html("<div id='"+data[a].id+"' class='server'><span class='server-title'><img class='server-icon' src ='data:"+data[a].img.contentType+";base64,"+_arrayBufferToBase64(data[a].img.data)+"'>"+data[a].title+"</span></div>"));
 			
 			// Default server selects on start
 			if(a==0){
@@ -95,8 +96,9 @@ $(document).ready(function() {
 			// Clear messages textarea
 			$('#messages').html('');
 			
-			// Clear current users list
-			$('#users-list').html("");
+			// Clear users list
+			$('.online-list').html("--Online--");
+			$('.offline-list').html("--Offline--");
 			
 			// Change css
 			$(".server").removeClass("selected-server");
@@ -176,8 +178,43 @@ $(document).ready(function() {
 		elem.scrollTop = elem.scrollHeight;
 	});
 	
+	socket.on('add server', function(data){
+		//	Test
+		console.log("add server");
+		console.log(data.img);
+
+		$('#left-list').append($('<li>').html("<div id='"+data.id+"' class='server'><span class='server-title'><img class='server-icon' src ='data:"+data.img.contentType+";base64,"+_arrayBufferToBase64(data.img.data)+"'>"+data.title+"</span></div>"));	
+		
+		// Click listener
+		$(".server").click(function(){
+			// Test
+			console.log(this.id);
+			
+			// Clear messages textarea
+			$('#messages').html('');
+			
+			// Clear current users list
+			$('#users-list').html("");
+			
+			// Change css
+			$(".server").removeClass("selected-server");
+			$("#"+this.id).addClass("selected-server");
+			
+			// Change selected value
+			selected.serverId = this.id;
+			
+			// Request channels
+			socket.emit('getChannels', this.id);
+			
+			// Request current users
+			socket.emit('currentUsers', this.id);
+		});
+	});
+	
 	// Convert data to image
-	function hexToBase64(buffer) {
+	function _arrayBufferToBase64( buffer ) {
+		// Test
+		//console.log("BUFFER: " + buffer);
 		var binary = '';
 		var bytes = new Uint8Array( buffer );
 		var len = bytes.byteLength;
@@ -186,27 +223,52 @@ $(document).ready(function() {
 			binary += String.fromCharCode( bytes[ i ] );
 		}
 		
-		var src = 'data:image/png;base64,' + btoa( binary );
-		return src;
+		return window.btoa( binary );
 	}
 	
+	function _base64ToArrayBuffer(base64) {
+		// Test
+		//console.log("BASE64: " + base64);
+		
+		var binary_string =  window.atob(base64);
+		var len = binary_string.length;
+		var bytes = new Uint8Array( len );
+		for (var i = 0; i < len; i++)        {
+			bytes[i] = binary_string.charCodeAt(i);
+		}
+		return bytes.buffer;
+	}
+		
 	// On server select - get current users
 	socket.on('currentUsers', function(users){
 		// Test
 		console.log("currentUsers: " + users);
 		
 		// Add users
-		 for (var i = 0; i < users.length; i++) {
-            $('#users-list').append($('<li class="username" id="'+users[i]+'">').html(users[i]));
+		for (var i = 0; i < users.length; i++) {
+            $('.online-list').append($('<li class="username online" id="'+users[i]+'">').html(users[i]));
+        }
+	});
+	
+	// On server select - get users
+	socket.on('users', function(users){
+		// Test
+		console.log("users: " + users);
+		
+		// Add users
+		for (var i = 0; i < users.length; i++) {
+            $('.offline-list').append($('<li class="username offline" id="'+users[i]+'">').html(users[i]));
         }
 	});
 	
 	// If someone went offline
 	socket.on('user went offline', function(username){
 		
-		// Remove from current users
+		// Remove from online
 		$('#' + username).remove();
 		
+		// Add to offline
+		$('.offline-list').append($('<li class="username offline" id="'+username+'">').html(username));
 	});
 	
 	// If someone went online
@@ -215,8 +277,11 @@ $(document).ready(function() {
 		//console.log("NewUserOnline: " + data.serverId + " sel: " + selected.serverId);
 		
 		if(data.serverId == selected.serverId){
-			// Add to current users
-			$('#users-list').append($('<li class="username" id="'+data.username+'">').html(data.username));
+			// Remove from offline
+			$('#' + data.username).remove();
+			
+			// Add to online
+			$('.online-list').append($('<li class="username online" id="'+data.username+'">').html(data.username));
 		}
 	});
 	
@@ -261,6 +326,75 @@ $(document).ready(function() {
 	$('.load').click(function() {
 		console.log('tap');
 		socket.emit('load more');
+	});
+	
+	// Create server
+	$('#server-create').click(function(){
+		// Test
+		console.log('#server-create');
+		
+		let imgSrc = $('#img-place').attr('src');
+		let dotIndex = imgSrc.indexOf(',') + 1;
+		let dot2Index = imgSrc.indexOf(';');
+
+		let title = $('#server-title').val();
+		let data = imgSrc.substring(dotIndex);
+		$.post("http://localhost:3000/server/new", 
+			{	title: title, 
+				img:{
+					data: data,
+					contentType: imgSrc.substring(5,dot2Index)
+				}
+			}
+			).done(function(data) {
+					if(!data.success){
+						alert(data.msg, "Error");
+						return;
+					}
+					// Test
+					console.log("Server created");
+					socket.emit('join server', {username: username, serverId: data.serverId});
+				});
+	});
+	
+	// User uploaded an image
+	$("#img-upload").change(function (evt) {
+		// Test
+		console.log("image uploaded");
+		
+		var tgt = evt.target || window.event.srcElement,
+			files = tgt.files;
+
+		// FileReader support
+		if (FileReader && files && files.length) {
+			var fr = new FileReader();
+			fr.onload = function () {
+				
+				 var image = new Image();
+                image.src = fr.result;
+                       
+                image.onload = function () {
+					if(this.width == 64 || this.height == 64){
+						$("#img-place").attr("src", fr.result);
+						$('#img-error').html("");
+					}
+					else {
+						// Test
+						console.log("#OnLoad. Bad size of image. Size: " + this.width + " x " + this.height);
+						$('#img-error').html("Invalid image size.");
+						$("#img-upload").val('');
+					}
+                }
+				
+			}
+			fr.readAsDataURL(files[0]);
+		}
+
+		// Not supported
+		else {
+			// fallback -- perhaps submit the input to an iframe and temporarily store
+			// them on the server until the user's session ends.
+		}
 	});
 
 	
